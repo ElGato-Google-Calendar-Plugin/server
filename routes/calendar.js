@@ -7,7 +7,7 @@ const calendar = google.calendar({version: "v3"});
 
 const TIMEOFFSET = '+05:30';
 
-const getEvents = async (params, {credentials, calendarId}) => {
+const getEvents = async (params, {credentials, calendarId}, res) => {
     try {
         const auth = new google.auth.JWT(
             credentials.client_email,
@@ -25,23 +25,25 @@ const getEvents = async (params, {credentials, calendarId}) => {
         });
         return response['data']['items'];
     } catch (error) {
-        console.log('Get events error', error);
-        // return res.status(200).json(error);
+        throw error;
     }
 }
 
 
 exports.getTodayEvents = [
 	async function (req, res) {
+        const dateTimeStart = new Date(req.query.from);
+        const dateTimeEnd = new Date(req.query.to);
         try {
             const events = await getEvents({
-                singleEvents: true,
-                orderBy: 'startTime'
-            }, req.body);
-            return apiResponse.successResponseWithData(res, "Operation success", events);
+                timeMin: dateTimeStart,
+                timeMax: dateTimeEnd
+            }, req.body,res);
+            if (events) {
+                return apiResponse.successResponseWithData(res, "Operation success", events);
+            }
         } catch (error) {
-            console.log(error);
-			return apiResponse.ErrorResponse(res, err);
+			return apiResponse.ErrorResponse(res, error);
         }
 	}
 ];
@@ -54,7 +56,7 @@ exports.getAllEvents = [
             const events = await getEvents({
                 timeMin: dateTimeStart,
                 timeMax: dateTimeEnd
-            }, req.body);
+            }, req.body, res);
             return apiResponse.successResponseWithData(res, "Operation success", events);
         } catch (error) {
             console.log(error);
